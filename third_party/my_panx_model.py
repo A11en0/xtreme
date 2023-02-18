@@ -60,7 +60,7 @@ class CustomXLMRoBertaForTokenClassification(RobertaForTokenClassification):
 
 
 if __name__ == '__main__':
-    model = CustomXLMRoBertaForTokenClassification.from_pretrained('xlm-roberta-base', langs=['en', 'de', 'fr'], num_labels_list=[7, 7, 7])
+    model = CustomXLMRoBertaForTokenClassification.from_pretrained('xlm-roberta-base')
     print(model)
 
 

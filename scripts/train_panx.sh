@@ -47,8 +47,8 @@ else
   GRAD_ACC=4
 fi
 
-DATA_DIR=$DATA_DIR/${TASK}/${TASK}_processed_maxlen${MAX_LENGTH}/
-OUTPUT_DIR="$OUT_DIR/$TASK/${MODEL}-LR${LR}-epoch${NUM_EPOCHS}-MaxLen${MAX_LENGTH}/"
+DATA_DIR=$DATA_DIR/${TASK}/${TASK}_${MODEL_TYPE}_processed_maxlen${MAX_LENGTH}/
+OUTPUT_DIR="$OUT_DIR/$TASK/${MODEL}_${MODEL_TYPE}_LR${LR}-epoch${NUM_EPOCHS}-MaxLen${MAX_LENGTH}/"
 mkdir -p $OUTPUT_DIR
 python $REPO/third_party/run_tag.py \
   --data_dir $DATA_DIR \

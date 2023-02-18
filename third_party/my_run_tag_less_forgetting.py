@@ -37,7 +37,7 @@ from torch.utils.data import RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
 
-from panx_model import CustomXLMRoBertaForTokenClassification, CustomXLMRobertaConfig
+from my_panx_model import CustomXLMRoBertaForTokenClassification, CustomXLMRobertaConfig
 from utils.utils_tag_remove import convert_examples_to_features
 from utils.utils_tag_remove import get_labels
 from utils.utils_tag_remove import read_examples_from_file
@@ -407,6 +407,7 @@ def train(args, train_dataset, model, tokenizer, labels, pad_token_label_id, lan
                 if args.n_gpu > 1:
                     # mean() to average on multi-gpu parallel training
                     loss_t[task] = loss_t[task].mean()
+
                 if args.gradient_accumulation_steps > 1:
                     loss_t[task] = loss_t[task] / args.gradient_accumulation_steps
 
@@ -415,20 +416,23 @@ def train(args, train_dataset, model, tokenizer, labels, pad_token_label_id, lan
                         scaled_loss.backward()
                 else:
                     loss_t[task].backward(retain_graph=True)
-                    grad_list.append([p.grad.clone().detach() for p in model.parameters() if p.grad is not None])
+                    if args.weight_type == 'less_forgetting':
+                        grad_list.append([p.grad.clone().detach() for p in model.parameters() if p.grad is not None])
                     model.zero_grad()
 
                 tr_loss += loss_t[task].item()
-            if step > 0:
-                w = save_mem_less_forgetting_direction(grad_list, last_opt_grad)
 
-            opt_grad = []
-            for layer, p in enumerate([p for p in model.parameters() if p.grad is not None]):
-                for t in range(len(grad_list)):
-                    if p.grad is not None:
-                        p.grad += w[t] * grad_list[t][layer]
-                opt_grad.append(p.grad.clone().detach())
-            last_opt_grad = opt_grad
+            if args.weight_type == 'less_forgetting':
+                if step > 0:
+                    w = save_mem_less_forgetting_direction(grad_list, last_opt_grad)
+
+                opt_grad = []
+                for layer, p in enumerate([p for p in model.parameters() if p.grad is not None]):
+                    for t in range(len(grad_list)):
+                        if p.grad is not None:
+                            p.grad += w[t] * grad_list[t][layer]
+                    opt_grad.append(p.grad.clone().detach())
+                last_opt_grad = opt_grad
 
             if args.fp16:
                 torch.nn.utils.clip_grad_norm_(amp.master_params(optimizer), args.max_grad_norm)
@@ -735,7 +739,7 @@ def main():
     parser.add_argument("--output_dir", default=None, type=str, required=True,
                         help="The output directory where the model predictions and checkpoints will be written.")
 
-    ## Other parameters
+    # Other parameters
     parser.add_argument("--labels", default="", type=str,
                         help="Path to a file containing all labels. If not specified, NER/POS labels are used.")
     parser.add_argument("--config_name", default="", type=str,
@@ -817,6 +821,8 @@ def main():
     parser.add_argument("--log_file", type=str, default=None, help="log file")
     parser.add_argument("--eval_patience", type=int, default=-1,
                         help="wait N times of decreasing dev score before early stop during training")
+    # User parameters
+    parser.add_argument("--weight_type", type=str, default="uniform", help="weight type, it can be [uniform, less_forgetting]")
     args = parser.parse_args()
 
     print("="*100)

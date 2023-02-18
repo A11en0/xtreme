@@ -123,6 +123,7 @@ function download_panx {
             tar xzf $base_dir/${lg}.tar.gz
             for f in dev test train; do mv $base_dir/$f $base_dir/${lg}-${f}; done
         done
+        echo "Unzip finished"
         cd ..
         python $REPO/utils_preprocess.py \
             --data_dir $base_dir \

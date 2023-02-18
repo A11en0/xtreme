@@ -21,6 +21,7 @@ DATA_DIR=${2:-"$REPO/download/"}
 TASK='panx'
 MAXL=128
 LANGS="ar,he,vi,id,jv,ms,tl,eu,ml,ta,te,af,nl,en,de,el,bn,hi,mr,ur,fa,fr,it,pt,es,bg,ru,ja,ka,ko,th,sw,yo,my,zh,kk,tr,et,fi,hu,qu,pl,uk,az,lt,pa,gu,ro"
+
 LC=""
 if [ $MODEL == "bert-base-multilingual-cased" ]; then
   MODEL_TYPE="bert"
@@ -30,7 +31,9 @@ elif [ $MODEL == "xlm-mlm-100-1280" ] || [ $MODEL == "xlm-mlm-tlm-xnli15-1024" ]
 elif [ $MODEL == "xlm-roberta-large" ] || [ $MODEL == "xlm-roberta-base" ]; then
   MODEL_TYPE="xlmr"
 fi
-SAVE_DIR="$DATA_DIR/$TASK/${TASK}_processed_maxlen${MAXL}"
+
+SAVE_DIR="$DATA_DIR/$TASK/${TASK}_${MODEL_TYPE}_processed_maxlen${MAXL}"
+echo $SAVE_DIR
 mkdir -p $SAVE_DIR
 python3 $REPO/utils_preprocess.py \
   --data_dir $DATA_DIR/$TASK/ \
@@ -43,3 +46,4 @@ python3 $REPO/utils_preprocess.py \
 if [ ! -f $SAVE_DIR/labels.txt ]; then
   cat $SAVE_DIR/*/*.${MODEL} | cut -f 2 | grep -v "^$" | sort | uniq > $SAVE_DIR/labels.txt
 fi
+

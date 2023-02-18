@@ -17,10 +17,11 @@
 REPO=$PWD
 MODEL=${1:-xlm-roberta-base}
 #MODEL=${1:-bert-base-multilingual-cased}
-GPU=${2:-0}
+GPU=${2:-1}
 DATA_DIR=${3:-"$REPO/download/"}
 OUT_DIR=${4:-"$REPO/outputs/"}
 MODEL_TYPE=${5:-xlmr-mh}   # Modify this to control xlm-roberta-base or its rewrite multi-head version. [xlmr, xlmr-mh]
+WEIGHT_TYPE=${6:-uniform}
 
 export CUDA_VISIBLE_DEVICES=$GPU
 TASK='panx'
@@ -40,10 +41,10 @@ else
   GRAD_ACC=1   # Has modify this.
 fi
 
-DATA_DIR=$DATA_DIR/${TASK}/${TASK}_processed_maxlen${MAX_LENGTH}/
-OUTPUT_DIR="$OUT_DIR/$TASK/${MODEL_TYPE}-LR${LR}-epoch${NUM_EPOCHS}-MaxLen${MAX_LENGTH}/"
+DATA_DIR=$DATA_DIR/${TASK}/${TASK}_xlmr_processed_maxlen${MAX_LENGTH}/
+OUTPUT_DIR="$OUT_DIR/$TASK/${MODEL}_${MODEL_TYPE}_LR${LR}-epoch${NUM_EPOCHS}-MaxLen${MAX_LENGTH}/"
 mkdir -p $OUTPUT_DIR
-python $REPO/third_party/run_tag_less_forgetting.py \
+python $REPO/third_party/my_run_tag_less_forgetting.py \
   --data_dir $DATA_DIR \
   --model_type $MODEL_TYPE \
   --labels $DATA_DIR/labels.txt \
@@ -67,8 +68,11 @@ python $REPO/third_party/run_tag_less_forgetting.py \
   --eval_patience -1 \
   --overwrite_output_dir \
   --save_only_best_checkpoint $LC \
-  --no_cuda
+  --weight_type $WEIGHT_TYPE
+  # --no_cuda \
   # --overwrite_cache
+
+
 
 
 
