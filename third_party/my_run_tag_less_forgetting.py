@@ -419,7 +419,7 @@ def train(args, train_dataset, model, tokenizer, labels, pad_token_label_id, lan
                     if args.weight_type == 'less_forgetting':
                         loss_t[task].backward(retain_graph=True)
                         grad_list.append([p.grad.clone().detach() for p in model.parameters() if p.grad is not None])
-                    model.zero_grad()
+                        model.zero_grad()   # before bug here?
 
                 tr_loss += loss_t[task].item()
 
@@ -440,8 +440,8 @@ def train(args, train_dataset, model, tokenizer, labels, pad_token_label_id, lan
             else:
                 torch.nn.utils.clip_grad_norm_(model.parameters(), args.max_grad_norm)
 
-            optimizer.step()
             scheduler.step()  # Update learning rate schedule
+            optimizer.step()
             model.zero_grad()
             global_step += 1
 
