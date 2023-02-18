@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 from torch.nn import CrossEntropyLoss
 from transformers import XLMPreTrainedModel, XLMModel, RobertaForTokenClassification
@@ -9,6 +10,7 @@ class CustomXLMRobertaConfig(XLMRobertaConfig):
     langs = ['en', 'de', 'fr']
     num_labels_list = [7, 7, 7]
 
+
 class CustomXLMRoBertaForTokenClassification(RobertaForTokenClassification):
     config_class = XLMRobertaConfig
     pretrained_model_archive_map = XLM_ROBERTA_PRETRAINED_MODEL_ARCHIVE_MAP
@@ -16,8 +18,18 @@ class CustomXLMRoBertaForTokenClassification(RobertaForTokenClassification):
 
     def __init__(self, config):
         super().__init__(config)
+        # self.classifier = nn.ModuleDict(
+        #     {config.langs[i]: nn.Linear(config.hidden_size, config.num_labels) for i, num_labels in
+        #      enumerate(config.num_labels_list)}
+        # )   # 重载，只能用 classifier
+
+        classifier = nn.Linear(config.hidden_size, config.num_labels)
+
         self.classifier = nn.ModuleDict(
-            {config.langs[i]: nn.Linear(config.hidden_size, config.num_labels) for i, num_labels in enumerate(config.num_labels_list)}
+            {'en': classifier,
+             'de': classifier,
+             'fr': classifier,
+            }
         )
 
         self.init_weights()
@@ -37,8 +49,13 @@ class CustomXLMRoBertaForTokenClassification(RobertaForTokenClassification):
         sequence_output = outputs[0]
 
         sequence_output = self.dropout(sequence_output)
-        classifier = self.select_classifier(task)
-        logits = classifier(sequence_output)
+
+        if task:
+            classifier = self.select_classifier(task)
+            logits = classifier(sequence_output)
+        else:
+            logit_list = torch.stack([self.classifier[k](sequence_output) for k in self.classifier.keys()])
+            logits = torch.mean(logit_list, dim=0)
 
         outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
         if labels is not None:
@@ -62,5 +79,3 @@ class CustomXLMRoBertaForTokenClassification(RobertaForTokenClassification):
 if __name__ == '__main__':
     model = CustomXLMRoBertaForTokenClassification.from_pretrained('xlm-roberta-base')
     print(model)
-
-

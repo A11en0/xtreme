@@ -383,8 +383,8 @@ def train(args, train_dataset, model, tokenizer, labels, pad_token_label_id, lan
             grad_list = []
 
             for t, batch in enumerate(all_task_batch):
-                # task = list(lang2id.keys())[list(lang2id.values()).index(batch[4][0])]  # id2lang
-                task = id2lang[batch[4][0].item()]
+                task = list(lang2id.keys())[list(lang2id.values()).index(batch[4][0])]  # id2lang
+                # task = id2lang[batch[4][0].item()]
                 model.train()
                 batch = tuple(t.to(args.device) for t in batch if t is not None)
                 inputs = {"input_ids": batch[0],
@@ -415,8 +415,9 @@ def train(args, train_dataset, model, tokenizer, labels, pad_token_label_id, lan
                     with amp.scale_loss(loss_t[task], optimizer) as scaled_loss:
                         scaled_loss.backward()
                 else:
-                    loss_t[task].backward(retain_graph=True)
+                    loss_t[task].backward()
                     if args.weight_type == 'less_forgetting':
+                        loss_t[task].backward(retain_graph=True)
                         grad_list.append([p.grad.clone().detach() for p in model.parameters() if p.grad is not None])
                     model.zero_grad()
 
@@ -556,8 +557,9 @@ def evaluate(args, model, tokenizer, labels, pad_token_label_id, mode, prefix=""
         tmp_eval_loss = {}
         logits = {}
         for t, batch in enumerate(all_eval_batch):
-            # task = list(lang2id.keys())[list(lang2id.values()).index(batch[4][0])]
-            task = id2lang[batch[4][0].item()]
+            # assert batch[4].size()[0] == args.eval_batch_size, print(batch[4])
+            task = list(lang2id.keys())[list(lang2id.values()).index(batch[4][0])]
+            # task = id2lang[batch[4][0].item()]
             batch = tuple(t.to(args.device) for t in batch)
             with torch.no_grad():
                 inputs = {"input_ids": batch[0],
@@ -571,8 +573,9 @@ def evaluate(args, model, tokenizer, labels, pad_token_label_id, mode, prefix=""
                 if args.model_type == 'xlm':
                     inputs["langs"] = batch[4]
 
-                if args.model_type in ["xlmr-mh"]:
-                    inputs["task"] = task
+                # evaluation needn't task identity
+                # if args.model_type in ["xlmr-mh"]:
+                #     inputs["task"] = task
 
                 outputs = model(**inputs)
                 tmp_eval_loss[task], logits[task] = outputs[:2]

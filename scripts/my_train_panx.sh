@@ -17,17 +17,17 @@
 REPO=$PWD
 MODEL=${1:-xlm-roberta-base}
 #MODEL=${1:-bert-base-multilingual-cased}
-GPU=${2:-1}
+GPU=${2:-0}
 DATA_DIR=${3:-"$REPO/download/"}
 OUT_DIR=${4:-"$REPO/outputs/"}
-MODEL_TYPE=${5:-xlmr-mh}   # Modify this to control xlm-roberta-base or its rewrite multi-head version. [xlmr, xlmr-mh]
+MODEL_TYPE=${5:-xlmr}   # Modify this to control xlm-roberta-base or its rewrite multi-head version. [xlmr, xlmr-mh]
 WEIGHT_TYPE=${6:-uniform}
 
 export CUDA_VISIBLE_DEVICES=$GPU
 TASK='panx'
 LANGS="ar,he,vi,id,jv,ms,tl,eu,ml,ta,te,af,nl,en,de,el,bn,hi,mr,ur,fa,fr,it,pt,es,bg,ru,ja,ka,ko,th,sw,yo,my,zh,kk,tr,et,fi,hu,qu,pl,uk,az,lt,pa,gu,ro"
 
-NUM_EPOCHS=10
+NUM_EPOCHS=1
 MAX_LENGTH=128
 LR=2e-5
 
@@ -38,10 +38,10 @@ if [ $MODEL == "xlm-mlm-100-1280" ] || [ $MODEL == "xlm-roberta-large" ]; then
   GRAD_ACC=16
 else
   BATCH_SIZE=8
-  GRAD_ACC=1   # Has modify this.
+  GRAD_ACC=4
 fi
 
-DATA_DIR=$DATA_DIR/${TASK}/${TASK}_xlmr_processed_maxlen${MAX_LENGTH}/
+DATA_DIR=$DATA_DIR/${TASK}/${TASK}_${MODEL_TYPE}_processed_maxlen${MAX_LENGTH}/
 OUTPUT_DIR="$OUT_DIR/$TASK/${MODEL}_${MODEL_TYPE}_LR${LR}-epoch${NUM_EPOCHS}-MaxLen${MAX_LENGTH}/"
 mkdir -p $OUTPUT_DIR
 python $REPO/third_party/my_run_tag_less_forgetting.py \
@@ -69,11 +69,6 @@ python $REPO/third_party/my_run_tag_less_forgetting.py \
   --overwrite_output_dir \
   --save_only_best_checkpoint $LC \
   --weight_type $WEIGHT_TYPE
-  # --no_cuda \
   # --overwrite_cache
-
-
-
-
-
-
+  # --no_cuda \
+  # --train_langs "en,de,fr" \
