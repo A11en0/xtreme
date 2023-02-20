@@ -415,11 +415,12 @@ def train(args, train_dataset, model, tokenizer, labels, pad_token_label_id, lan
                     with amp.scale_loss(loss_t[task], optimizer) as scaled_loss:
                         scaled_loss.backward()
                 else:
-                    loss_t[task].backward()
                     if args.weight_type == 'less_forgetting':
                         loss_t[task].backward(retain_graph=True)
                         grad_list.append([p.grad.clone().detach() for p in model.parameters() if p.grad is not None])
                         model.zero_grad()   # before bug here?
+                    else:
+                        loss_t[task].backward()
 
                 tr_loss += loss_t[task].item()
 
@@ -825,7 +826,10 @@ def main():
     parser.add_argument("--eval_patience", type=int, default=-1,
                         help="wait N times of decreasing dev score before early stop during training")
     # User parameters
-    parser.add_argument("--weight_type", type=str, default="uniform", help="weight type, it can be [uniform, less_forgetting]")
+    parser.add_argument("--weight_type", type=str, default="uniform",
+                        help="weight type, it can be [uniform, less_forgetting]")
+    parser.add_argument("--predict_head", type=str, default="en",
+                        help="weight type, it can be [en, de, fr]")
     args = parser.parse_args()
 
     print("="*100)

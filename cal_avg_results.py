@@ -4,7 +4,9 @@ from pprint import pprint
 
 FILE_TYPE = 'test'
 MODEL_TYPE = 'xlmr'
-READ_NAME = f'outputs/panx/xlm-roberta-base_{MODEL_TYPE}_LR2e-5-epoch10-MaxLen128/{FILE_TYPE}_results.txt'
+TRAIN_LANG = 'en,de,fr'
+READ_NAME = f'outputs/panx/xlm-roberta-base_{MODEL_TYPE}_TLANG{TRAIN_LANG}_LR2e-5-epoch10-MaxLen128/{FILE_TYPE}_results.txt'
+print(READ_NAME)
 
 # read files
 with open(READ_NAME, 'r') as f:

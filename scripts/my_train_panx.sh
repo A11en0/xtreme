@@ -17,17 +17,19 @@
 REPO=$PWD
 MODEL=${1:-xlm-roberta-base}
 #MODEL=${1:-bert-base-multilingual-cased}
-GPU=${2:-0}
+GPU=${2:-1}
 DATA_DIR=${3:-"$REPO/download/"}
 OUT_DIR=${4:-"$REPO/outputs/"}
-MODEL_TYPE=${5:-xlmr}   # Modify this to control xlm-roberta-base or its rewrite multi-head version. [xlmr, xlmr-mh]
-WEIGHT_TYPE=${6:-uniform}
+MODEL_TYPE=${5:-xlmr-mh}   # Modify this to control xlm-roberta-base or its rewrite multi-head version. [xlmr, xlmr-mh]
+WEIGHT_TYPE=${6:-uniform}  # uniform
+TRAIN_LANGS=${7:-"en,de,fr"}
+PREDICT_HEAD=${8:-de}
 
 export CUDA_VISIBLE_DEVICES=$GPU
 TASK='panx'
 LANGS="ar,he,vi,id,jv,ms,tl,eu,ml,ta,te,af,nl,en,de,el,bn,hi,mr,ur,fa,fr,it,pt,es,bg,ru,ja,ka,ko,th,sw,yo,my,zh,kk,tr,et,fi,hu,qu,pl,uk,az,lt,pa,gu,ro"
 
-NUM_EPOCHS=1
+NUM_EPOCHS=10
 MAX_LENGTH=128
 LR=2e-5
 
@@ -41,8 +43,10 @@ else
   GRAD_ACC=4
 fi
 
-DATA_DIR=$DATA_DIR/${TASK}/${TASK}_${MODEL_TYPE}_processed_maxlen${MAX_LENGTH}/
-OUTPUT_DIR="$OUT_DIR/$TASK/${MODEL}_${MODEL_TYPE}_LR${LR}-epoch${NUM_EPOCHS}-MaxLen${MAX_LENGTH}/"
+#DATA_DIR=$DATA_DIR/${TASK}/${TASK}_${MODEL_TYPE}_processed_maxlen${MAX_LENGTH}/
+DATA_DIR=$DATA_DIR/${TASK}/${TASK}_xlmr_processed_maxlen${MAX_LENGTH}/
+OUTPUT_DIR="$OUT_DIR/$TASK/${MODEL}_${MODEL_TYPE}_TL${TRAIN_LANGS}_PH${PREDICT_HEAD}_LR${LR}-epoch${NUM_EPOCHS}-MaxLen${MAX_LENGTH}-${WEIGHT_TYPE}/"
+echo $OUTPUT_DIR
 mkdir -p $OUTPUT_DIR
 python $REPO/third_party/my_run_tag_less_forgetting.py \
   --data_dir $DATA_DIR \
@@ -62,13 +66,12 @@ python $REPO/third_party/my_run_tag_less_forgetting.py \
   --do_eval \
   --do_predict \
   --predict_langs $LANGS \
-  --train_langs "en,de,fr" \
+  --train_langs $TRAIN_LANGS \
   --log_file $OUTPUT_DIR/train.log \
   --eval_all_checkpoints \
   --eval_patience -1 \
   --overwrite_output_dir \
   --save_only_best_checkpoint $LC \
-  --weight_type $WEIGHT_TYPE
-  # --overwrite_cache
-  # --no_cuda \
-  # --train_langs "en,de,fr" \
+  --weight_type $WEIGHT_TYPE \
+  --predict_head $PREDICT_HEAD
+  #  > outputs/xlmr-mh-uniform-de 2>&1 &
