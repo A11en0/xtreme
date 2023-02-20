@@ -18,7 +18,7 @@ REPO=$PWD
 MODEL=${1:-xlm-roberta-base}
 #MODEL=${1:-bert-base-multilingual-cased}
 #GPU=${2:-0,1}
-GPU=${2:-0}
+GPU=${2:-1}
 DATA_DIR=${3:-"$REPO/download/"}
 OUT_DIR=${4:-"$REPO/outputs/"}
 

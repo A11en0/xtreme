@@ -17,13 +17,13 @@
 REPO=$PWD
 MODEL=${1:-xlm-roberta-base}
 #MODEL=${1:-bert-base-multilingual-cased}
-GPU=${2:-1}
+GPU=${2:-0}
 DATA_DIR=${3:-"$REPO/download/"}
 OUT_DIR=${4:-"$REPO/outputs/"}
 MODEL_TYPE=${5:-xlmr-mh}   # Modify this to control xlm-roberta-base or its rewrite multi-head version. [xlmr, xlmr-mh]
-WEIGHT_TYPE=${6:-uniform}  # uniform
+WEIGHT_TYPE=${6:-less_forgetting}  # uniform / less_forgetting
 TRAIN_LANGS=${7:-"en,de,fr"}
-PREDICT_HEAD=${8:-de}
+PREDICT_HEAD=${8:-mean}
 
 export CUDA_VISIBLE_DEVICES=$GPU
 TASK='panx'

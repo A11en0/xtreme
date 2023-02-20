@@ -575,8 +575,9 @@ def evaluate(args, model, tokenizer, labels, pad_token_label_id, mode, prefix=""
                     inputs["langs"] = batch[4]
 
                 # evaluation needn't task identity
-                # if args.model_type in ["xlmr-mh"]:
-                #     inputs["task"] = task
+                if args.model_type in ["xlmr-mh"]:
+                    inputs["predict_head"] = args.predict_head
+                    # inputs["task"] = task
 
                 outputs = model(**inputs)
                 tmp_eval_loss[task], logits[task] = outputs[:2]
