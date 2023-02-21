@@ -1,11 +1,13 @@
 import numpy as np
 from pprint import pprint
+import pandas as pd
 
 
 FILE_TYPE = 'test'
-MODEL_TYPE = 'xlmr'
+MODEL_TYPE = 'xlmr-mh'
 TRAIN_LANG = 'en,de,fr'
-READ_NAME = f'outputs/panx/xlm-roberta-base_{MODEL_TYPE}_TLANG{TRAIN_LANG}_LR2e-5-epoch10-MaxLen128/{FILE_TYPE}_results.txt'
+PREDICT_HEAD = 'fr'
+READ_NAME = f'outputs/panx/xlm-roberta-base_{MODEL_TYPE}_TL{TRAIN_LANG}_PH{PREDICT_HEAD}_LR2e-5-epoch10-MaxLen128-uniform/{FILE_TYPE}_results.txt'
 print(READ_NAME)
 
 # read files
@@ -29,15 +31,20 @@ with open(READ_NAME, 'r') as f:
     results = []
     for lang in langs:
         lang_ret = []
-        for i in range(2, 6):
+        for i in range(1, 6):
             item = lang[i]
             item_val = item.split('=')[1].strip()
             lang_ret.append(item_val)
         results.append(lang_ret)
     # pprint(results)
 
-    # calculate the average over all languages
-    array_ret = np.array(results, dtype=float)
-    print('f1', 'loss', 'precision', 'recall')
-    print(np.average(array_ret, 0))
+    # save to csv file.
+    df = pd.DataFrame(results)
+    df.columns = ['Lang', 'F1', 'Loss', 'Precision', 'Recall']
+    df['F1'] = df['F1'].astype(float)
+    df['Loss'] = df['Loss'].astype(float)
+    df['Precision'] = df['Precision'].astype(float)
+    df['Recall'] = df['Recall'].astype(float)
+    df.loc[len(df)] = ['avg', df.loc[:, 'F1'].mean(), df.loc[:, 'Loss'].mean(), df.loc[:, 'Precision'].mean(), df.loc[:, 'Recall'].mean()]
+    df.to_csv(f'{MODEL_TYPE}_TL{TRAIN_LANG}_PH{PREDICT_HEAD}_each.csv', float_format='%.4f', index=False)
 

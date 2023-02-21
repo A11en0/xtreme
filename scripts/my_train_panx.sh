@@ -21,9 +21,9 @@ GPU=${2:-0}
 DATA_DIR=${3:-"$REPO/download/"}
 OUT_DIR=${4:-"$REPO/outputs/"}
 MODEL_TYPE=${5:-xlmr-mh}   # Modify this to control xlm-roberta-base or its rewrite multi-head version. [xlmr, xlmr-mh]
-WEIGHT_TYPE=${6:-less_forgetting}  # uniform / less_forgetting
+WEIGHT_TYPE=${6:-uniform}  # uniform / less_forgetting
 TRAIN_LANGS=${7:-"en,de,fr"}
-PREDICT_HEAD=${8:-mean}
+PREDICT_HEAD=${8:-fr}
 
 export CUDA_VISIBLE_DEVICES=$GPU
 TASK='panx'
@@ -74,4 +74,3 @@ python $REPO/third_party/my_run_tag_less_forgetting.py \
   --save_only_best_checkpoint $LC \
   --weight_type $WEIGHT_TYPE \
   --predict_head $PREDICT_HEAD
-  #  > outputs/xlmr-mh-uniform-de 2>&1 &
