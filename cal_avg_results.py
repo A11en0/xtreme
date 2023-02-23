@@ -7,7 +7,8 @@ FILE_TYPE = 'test'
 MODEL_TYPE = 'xlmr-mh'
 TRAIN_LANG = 'en,de,fr'
 PREDICT_HEAD = 'fr'
-READ_NAME = f'outputs/panx/xlm-roberta-base_{MODEL_TYPE}_TL{TRAIN_LANG}_PH{PREDICT_HEAD}_LR2e-5-epoch10-MaxLen128-uniform/{FILE_TYPE}_results.txt'
+# READ_NAME = f'outputs/panx/xlm-roberta-base_{MODEL_TYPE}_TL{TRAIN_LANG}_PH{PREDICT_HEAD}_LR2e-5-epoch10-MaxLen128-uniform/{FILE_TYPE}_results.txt'
+READ_NAME = f'outputs/panx/xlm-roberta-base_xlmr_LR2e-5-epoch10-MaxLen128/{FILE_TYPE}_results.txt'
 print(READ_NAME)
 
 # read files
