@@ -20,10 +20,11 @@ MODEL=${1:-xlm-roberta-base}
 GPU=${2:-0}
 DATA_DIR=${3:-"$REPO/download/"}
 OUT_DIR=${4:-"$REPO/outputs/"}
-MODEL_TYPE=${5:-xlmr}   # Modify this to control xlm-roberta-base or its rewrite multi-head version. [xlmr, xlmr-mh]
+MODEL_TYPE=${5:-xlmr-p}   # Modify this to control xlm-roberta-base or its rewrite multi-head version. [xlmr, xlmr-mh]
 WEIGHT_TYPE=${6:-uniform}  # uniform / less_forgetting
 TRAIN_LANGS=${7:-"en,de,fr"}
-PREDICT_HEAD=${8:-mean}
+UNLABEL_TRAIN_LANGS=${8:-"pa,pl,pt,qu,ro"}
+PREDICT_HEAD=${9:-mean}
 
 export CUDA_VISIBLE_DEVICES=$GPU
 TASK='panx'
@@ -73,4 +74,5 @@ python $REPO/third_party/my_run_tag_less_forgetting.py \
   --overwrite_output_dir \
   --save_only_best_checkpoint $LC \
   --weight_type $WEIGHT_TYPE \
-  --predict_head $PREDICT_HEAD
+  --predict_head $PREDICT_HEAD \
+  --unlabel_train_langs $UNLABEL_TRAIN_LANGS

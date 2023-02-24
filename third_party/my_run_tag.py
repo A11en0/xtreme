@@ -32,7 +32,7 @@ import torch
 from seqeval.metrics import precision_score, recall_score, f1_score
 from tensorboardX import SummaryWriter
 from torch.nn import CrossEntropyLoss
-from torch.utils.data import DataLoader, TensorDataset, SubsetRandomSampler, BatchSampler
+from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data import RandomSampler, SequentialSampler
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
@@ -42,7 +42,6 @@ from my_panx_model import CustomXLMRoBertaForTokenClassification, CustomXLMRober
 from utils.utils_tag_remove import convert_examples_to_features
 from utils.utils_tag_remove import get_labels
 from utils.utils_tag_remove import read_examples_from_file
-from utils import datasets
 
 from transformers import (
     AdamW,
@@ -294,72 +293,31 @@ def less_forgetting_direction(grad_list, last_opt_grad):
     # w = torch.ones(len(grad_list)) / len(grad_list)
     return w
 
-def create_dataloader(train_datasets, unlabel_train_datasets, args):
-    upd_per_epoch = 0
-    num_train_samples = 0
-    train_dataloaders = []
-    batch_size = args.train_batch_size
 
-    for i, datasets in enumerate(train_datasets+unlabel_train_datasets):
-        train_sampler = RandomSampler(datasets) if args.local_rank == -1 else DistributedSampler(datasets)
-        task_dataloader = DataLoader(datasets, sampler=train_sampler, batch_size=batch_size)
-        if len(task_dataloader) > upd_per_epoch:
-            upd_per_epoch = len(task_dataloader)
-        train_dataloaders.append(task_dataloader)
-        num_train_samples += len(task_dataloader)
-    return train_dataloaders, upd_per_epoch, num_train_samples
-
-def create_datasets(train_datasets, args):
-    upd_per_epoch = 0
-    num_train_samples = 0
-    train_dataloaders = []
-    batch_size = args.train_batch_size
-
-    # labeled_idxs = unlabeled_idxs = 0
-    # labeled_batch_size = args.labeled_batch_size
-
-    # if args.labels:
-    #     with open(args.labels) as f:
-    #         labels = dict(line.split(' ') for line in f.read().splitlines())
-    #     labeled_idxs, unlabeled_idxs = datasets.relabel_dataset(trainset, labels)
-    # assert len(trainset.imgs) == len(labeled_idxs)+len(unlabeled_idxs)
-
-    # labeled_idxs, unlabeled_idxs = datasets.relabel_dataset(trainset, labels)
-
-    # if labeled_batch_size < batch_size:
-    #     assert len(unlabeled_idxs) > 0
-    #     batch_sampler = datasets.TwoStreamBatchSampler(
-    #         unlabeled_idxs, labeled_idxs, batch_size, labeled_batch_size)
-    # else:
-    #     sampler = SubsetRandomSampler(labeled_idxs)
-    #     batch_sampler = BatchSampler(sampler, batch_size, drop_last=True)
-
-    for t in range(len(train_datasets)):
-        train_sampler = RandomSampler(train_datasets[t]) if args.local_rank == -1 else DistributedSampler(
-            train_datasets[t])
-        task_dataloader = DataLoader(train_datasets[t], sampler=train_sampler, batch_size=batch_size)
-        # task_dataloader = DataLoader(train_datasets[t], sampler=batch_sampler, batch_size=batch_size)
-        if len(task_dataloader) > upd_per_epoch:
-            upd_per_epoch = len(task_dataloader)
-        train_dataloaders.append(task_dataloader)
-        num_train_samples += len(task_dataloader)
-    return train_dataloaders, upd_per_epoch, num_train_samples
-
-def train(args, train_datasets, unlabel_train_datasets, model, tokenizer, labels, pad_token_label_id, langs, lang2id=None):
+def train(args, train_dataset, model, tokenizer, labels, pad_token_label_id, langs, lang2id=None):
     """Train the model."""
     if args.local_rank in [-1, 0]:
         tb_writer = SummaryWriter()
 
     args.train_batch_size = args.per_gpu_train_batch_size * max(1, args.n_gpu)
-    # train_dataloaders, upd_per_epoch, num_train_samples = create_datasets(train_datasets, args)
-    train_dataloaders, upd_per_epoch, num_train_samples = create_dataloader(train_datasets, unlabel_train_datasets, args)
+    train_dataloaders = []
+    upd_per_epoch = 0
+    num_train_samples = 0
+    for t in range(len(train_dataset)):
+        train_sampler = RandomSampler(train_dataset[t]) if args.local_rank == -1 else DistributedSampler(
+            train_dataset[t])
+        task_dataloader = DataLoader(train_dataset[t], sampler=train_sampler, batch_size=args.train_batch_size)
+        if len(task_dataloader) > upd_per_epoch:
+            upd_per_epoch = len(task_dataloader)
+        train_dataloaders.append(task_dataloader)
+        num_train_samples += len(task_dataloader)
 
     if args.max_steps > 0:
         t_total = args.max_steps
         args.num_train_epochs = args.max_steps // (upd_per_epoch // args.gradient_accumulation_steps) + 1
     else:
         t_total = upd_per_epoch // args.gradient_accumulation_steps * args.num_train_epochs
-
+        
     # Prepare optimizer and schedule (linear warmup and decay)
     no_decay = ["bias", "LayerNorm.weight"]
 
@@ -433,8 +391,7 @@ def train(args, train_datasets, unlabel_train_datasets, model, tokenizer, labels
                 batch = tuple(t.to(args.device) for t in batch if t is not None)
                 inputs = {"input_ids": batch[0],
                           "attention_mask": batch[1],
-                          "labels": batch[3],
-                          "in_batch_task_id": t}
+                          "labels": batch[3]}
 
                 if args.model_type != "distilbert":
                     # XLM and RoBERTa don"t use segment_ids
@@ -448,11 +405,6 @@ def train(args, train_datasets, unlabel_train_datasets, model, tokenizer, labels
 
                 outputs = model(**inputs)
                 loss_t[task] = outputs[0]
-
-                # self.optimizer.zero_grad()
-                # loss.backward()
-                # self.optimizer.step()
-                # labeled_bs = data.size(0)
 
                 if args.n_gpu > 1:
                     # mean() to average on multi-gpu parallel training
@@ -881,8 +833,6 @@ def main():
                         help="weight type, it can be [uniform, less_forgetting]")
     parser.add_argument("--predict_head", type=str, default="en",
                         help="weight type, it can be [en, de, fr]")
-    parser.add_argument("--unlabel_train_langs", default="en", type=str,
-                        help="The languages in the training sets with unlabeled data.")
     args = parser.parse_args()
 
     print("="*100)
@@ -976,9 +926,7 @@ def main():
     if args.do_train:
         train_dataset = load_and_cache_examples(args, tokenizer, labels, pad_token_label_id, mode="train",
                                                 lang=args.train_langs, lang2id=lang2id, few_shot=args.few_shot)
-        unlabel_train_datasets = load_and_cache_examples(args, tokenizer, labels, pad_token_label_id, mode="train",
-                                                lang=args.unlabel_train_langs, lang2id=lang2id, few_shot=args.few_shot)
-        global_step, tr_loss = train(args, train_dataset, unlabel_train_datasets, model, tokenizer, labels, pad_token_label_id,
+        global_step, tr_loss = train(args, train_dataset, model, tokenizer, labels, pad_token_label_id,
                                      args.train_langs, lang2id)
         logger.info(" global_step = %s, average loss = %s", global_step, tr_loss)
 

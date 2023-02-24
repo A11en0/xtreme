@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="wsco@114.213.208.99:1151 password" remoteFilesAllowedToDisappearOnAutoupload="false" showNewOnSourceInSync="false">
+  <component name="PublishConfigData" autoUpload="Always" serverName="wsco@114.213.208.99:1151 password" remoteFilesAllowedToDisappearOnAutoupload="false" showNewOnSourceInSync="false" showExcludedInSync="true">
     <serverData>
       <paths name="wsco@114.213.208.99:1151 password">
         <serverdata>
