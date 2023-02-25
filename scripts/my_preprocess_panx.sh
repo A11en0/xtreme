@@ -33,7 +33,7 @@ elif [ $MODEL == "xlm-roberta-large" ] || [ $MODEL == "xlm-roberta-base" ]; then
 fi
 
 echo "Download panx NER dataset"
-if [ -f $DIR/AmazonPhotos.zip ]; then
+if [ -f $DATA_DIR/AmazonPhotos.zip ]; then
     base_dir=$DATA_DIR/panx_dataset/
     unzip -qq -j $DATA_DIR/AmazonPhotos.zip -d $base_dir
     cd $base_dir
@@ -51,7 +51,7 @@ if [ -f $DIR/AmazonPhotos.zip ]; then
     rm -rf $base_dir
     echo "Successfully downloaded data at $DATA_DIR/panx" >> $DATA_DIR/download.log
 else
-    echo "Please download the AmazonPhotos.zip file on Amazon Cloud Drive manually and save it to $DIR/AmazonPhotos.zip"
+    echo "Please download the AmazonPhotos.zip file on Amazon Cloud Drive manually and save it to $DATA_DIR/AmazonPhotos.zip"
     echo "https://www.amazon.com/clouddrive/share/d3KGCRCIYwhKJF0H3eWA26hjg2ZCRhjpEQtDL70FSBN"
 fi
 

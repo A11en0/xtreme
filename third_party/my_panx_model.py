@@ -154,14 +154,14 @@ class PseudoXLMRobertaForTokenClassification(BertPreTrainedModel):
                 active_labels = labels.view(-1)[active_loss]
                 # logits, labels = active_logits.view(-1, self.num_labels), active_labels.view(-1)
 
-                if in_batch_task_id > 3:   # unlabeled training data
+                if in_batch_task_id and in_batch_task_id > 3:   # unlabeled training data
                     loss = pseudo_loss_cal(active_logits)
                 else:
                     loss = loss_fct(active_logits, active_labels)
             else:
                 logits, labels = logits.view(-1, self.num_labels), labels.view(-1)
 
-                if in_batch_task_id > 3:   # unlabeled training data
+                if in_batch_task_id and in_batch_task_id > 3:   # unlabeled training data
                     loss = pseudo_loss_cal(logits)
                 else:
                     loss = loss_fct(logits, labels)

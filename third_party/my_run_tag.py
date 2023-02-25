@@ -70,7 +70,7 @@ MODEL_CLASSES = {
     "bert": (BertConfig, BertForTokenClassification, BertTokenizer),
     "xlm": (XLMConfig, XLMForTokenClassification, XLMTokenizer),
     "xlmr": (XLMRobertaConfig, XLMRobertaForTokenClassification, XLMRobertaTokenizer),
-    "xlmr-p": (PseudoXLMRobertaConfig, PseudoXLMRobertaForTokenClassification, XLMRobertaTokenizer),
+    # "xlmr-p": (PseudoXLMRobertaConfig, PseudoXLMRobertaForTokenClassification, XLMRobertaTokenizer),
     "xlmr-mh": (CustomXLMRobertaConfig, CustomXLMRoBertaForTokenClassification, XLMRobertaTokenizer),
 }
 

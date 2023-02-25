@@ -1,9 +1,13 @@
 import os
 import itertools
 import numpy as np
+import torch
 from PIL import Image
 import torchvision.transforms as transforms
+from torch.utils.data import DataLoader, Dataset
 from torch.utils.data.sampler import Sampler
+
+from third_party.my_run_tag_less_forgetting import create_dataloader
 
 NO_LABEL = -1
 
@@ -87,13 +91,31 @@ def relabel_dataset(dataset, labels):
             dataset.imgs[idx] = path, NO_LABEL
             unlabeled_idxs.append(idx)
 
-    if len(labels)!=0:
+    if len(labels) != 0:
         message = "List of unlabeled contains {} unknow files: {}, ..."
         some_missing = ', '.join(list(labels.keys())[:5])
         raise LookupError(message.format(len(labels), some_missing))
 
     labeled_idxs = sorted(set(range(len(dataset.imgs)))-set(unlabeled_idxs))
     return labeled_idxs, unlabeled_idxs
+
+
+def get_data_idxs(dataset):
+    unlabeled_idxs = []
+    for idx in range(len(dataset.imgs)):
+        path, _ = dataset.imgs[idx]
+        filename = os.path.basename(path)
+        if filename in labels:
+            label_idx = dataset.class_to_idx[labels[filename]]
+            dataset.imgs[idx] = path, label_idx
+            del labels[filename]
+        else:
+            dataset.imgs[idx] = path, NO_LABEL
+            unlabeled_idxs.append(idx)
+
+    labeled_idxs = sorted(set(range(len(dataset.imgs)))-set(unlabeled_idxs))
+    return labeled_idxs, unlabeled_idxs
+
 
 class TwoStreamBatchSampler(Sampler):
     """Iterate two sets of indices
@@ -132,3 +154,52 @@ def iterate_eternally(indices):
 def grouper(iterable, n):
     args = [iter(iterable)]*n
     return zip(*args)
+
+def merge_dataset(dataset_list, return_task_batch_list=True):
+    iterators = [iter(d) for d in dataset_list]
+    n = len(dataset_list)
+    while True:
+        batch_list = []
+        for i in range(n):
+            try:
+                batch = next(iterators[i])
+            except StopIteration:
+                iterators[i] = iter(dataset_list[i])
+                batch = next(iterators[i])
+            batch_list.append(batch)
+            if not return_task_batch_list:
+                yield batch
+        if return_task_batch_list:
+            yield batch_list
+
+class DummyDataset(Dataset):
+    """
+    Dataset of numbers in [a,b] inclusive
+    """
+
+    def __init__(self, a=0, b=100):
+        super(DummyDataset, self).__init__()
+        self.a = a
+        self.b = b
+
+    def __len__(self):
+        return self.b - self.a + 1
+
+    def __getitem__(self, index):
+        return index, "label_{}".format(index)
+
+
+if __name__ == '__main__':
+    d1 = DataLoader(DummyDataset(0, 9), batch_size=2, shuffle=True)
+    d2 = DataLoader(DummyDataset(0, 9), batch_size=2, shuffle=True)
+    d3 = DataLoader(DummyDataset(0, 9), batch_size=2, shuffle=True)
+    dataset_list = [d1, d2, d3]
+    # dataloaders1 = DataLoader(DummyDataset(0, 9), batch_size=2, shuffle=True)
+    # dataloaders2 = DataLoader(DummyDataset(0, 9), batch_size=2, shuffle=True)
+    # a = [1, 2]
+    # b = [0, 3, 4, 5]
+    # batch_sampler = TwoStreamBatchSampler(a, b, 5, 4)
+    # train_dataset = torch.tensor([[1,1,1],[2,2,2],[3,3,3],[4,4,4],[5,5,5],[6,6,6]])
+    # train_loader = torch.utils.data.DataLoader(train_dataset, batch_sampler=batch_sampler)
+    # for i in train_loader:
+    #     print(i)

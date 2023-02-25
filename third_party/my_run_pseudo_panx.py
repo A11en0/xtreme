@@ -42,7 +42,6 @@ from my_panx_model import CustomXLMRoBertaForTokenClassification, CustomXLMRober
 from utils.utils_tag_remove import convert_examples_to_features
 from utils.utils_tag_remove import get_labels
 from utils.utils_tag_remove import read_examples_from_file
-from utils import datasets
 
 from transformers import (
     AdamW,
@@ -309,42 +308,6 @@ def create_dataloader(train_datasets, unlabel_train_datasets, args):
         num_train_samples += len(task_dataloader)
     return train_dataloaders, upd_per_epoch, num_train_samples
 
-def create_datasets(train_datasets, args):
-    upd_per_epoch = 0
-    num_train_samples = 0
-    train_dataloaders = []
-    batch_size = args.train_batch_size
-
-    # labeled_idxs = unlabeled_idxs = 0
-    # labeled_batch_size = args.labeled_batch_size
-
-    # if args.labels:
-    #     with open(args.labels) as f:
-    #         labels = dict(line.split(' ') for line in f.read().splitlines())
-    #     labeled_idxs, unlabeled_idxs = datasets.relabel_dataset(trainset, labels)
-    # assert len(trainset.imgs) == len(labeled_idxs)+len(unlabeled_idxs)
-
-    # labeled_idxs, unlabeled_idxs = datasets.relabel_dataset(trainset, labels)
-
-    # if labeled_batch_size < batch_size:
-    #     assert len(unlabeled_idxs) > 0
-    #     batch_sampler = datasets.TwoStreamBatchSampler(
-    #         unlabeled_idxs, labeled_idxs, batch_size, labeled_batch_size)
-    # else:
-    #     sampler = SubsetRandomSampler(labeled_idxs)
-    #     batch_sampler = BatchSampler(sampler, batch_size, drop_last=True)
-
-    for t in range(len(train_datasets)):
-        train_sampler = RandomSampler(train_datasets[t]) if args.local_rank == -1 else DistributedSampler(
-            train_datasets[t])
-        task_dataloader = DataLoader(train_datasets[t], sampler=train_sampler, batch_size=batch_size)
-        # task_dataloader = DataLoader(train_datasets[t], sampler=batch_sampler, batch_size=batch_size)
-        if len(task_dataloader) > upd_per_epoch:
-            upd_per_epoch = len(task_dataloader)
-        train_dataloaders.append(task_dataloader)
-        num_train_samples += len(task_dataloader)
-    return train_dataloaders, upd_per_epoch, num_train_samples
-
 def train(args, train_datasets, unlabel_train_datasets, model, tokenizer, labels, pad_token_label_id, langs, lang2id=None):
     """Train the model."""
     if args.local_rank in [-1, 0]:
@@ -426,7 +389,7 @@ def train(args, train_datasets, unlabel_train_datasets, model, tokenizer, labels
             loss_t = {}
             grad_list = []
 
-            assert None not in all_task_batch, print("current:", all_task_batch)
+            # assert None not in all_task_batch, print("current:", all_task_batch)
 
             for t, batch in enumerate(all_task_batch):
                 task = list(lang2id.keys())[list(lang2id.values()).index(batch[4][0])]  # id2lang
