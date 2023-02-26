@@ -399,7 +399,8 @@ def train(args, train_datasets, unlabel_train_datasets, model, tokenizer, labels
                 inputs = {"input_ids": batch[0],
                           "attention_mask": batch[1],
                           "labels": batch[3],
-                          "in_batch_task_id": t}
+                          "in_batch_task_id": t,
+                          "train_langs_len": len(train_datasets)}
 
                 if args.model_type != "distilbert":
                     # XLM and RoBERTa don"t use segment_ids

@@ -8,7 +8,8 @@ MODEL_TYPE = 'xlmr-mh'
 TRAIN_LANG = 'en,de,fr'
 PREDICT_HEAD = 'fr'
 # READ_NAME = f'outputs/panx/xlm-roberta-base_{MODEL_TYPE}_TL{TRAIN_LANG}_PH{PREDICT_HEAD}_LR2e-5-epoch10-MaxLen128-uniform/{FILE_TYPE}_results.txt'
-READ_NAME = f'outputs/panx/xlm-roberta-base_xlmr_LR2e-5-epoch10-MaxLen128/{FILE_TYPE}_results.txt'
+# READ_NAME = f'outputs/panx/xlm-roberta-base_xlmr-p_TLen,de,fr_PHmean_LR2e-5-epoch10-MaxLen128-uniform/{FILE_TYPE}_results.txt'
+READ_NAME = f'outputs/panx/xlm-roberta-base_xlmr-p_TLen,de,fr_PL8/{FILE_TYPE}_results.txt'
 print(READ_NAME)
 
 # read files
@@ -47,5 +48,5 @@ with open(READ_NAME, 'r') as f:
     df['Precision'] = df['Precision'].astype(float)
     df['Recall'] = df['Recall'].astype(float)
     df.loc[len(df)] = ['avg', df.loc[:, 'F1'].mean(), df.loc[:, 'Loss'].mean(), df.loc[:, 'Precision'].mean(), df.loc[:, 'Recall'].mean()]
-    df.to_csv(f'{MODEL_TYPE}_TL{TRAIN_LANG}_PH{PREDICT_HEAD}_each.csv', float_format='%.4f', index=False)
+    df.to_csv(f'{MODEL_TYPE}_TL{TRAIN_LANG}_PH{PREDICT_HEAD}.csv', float_format='%.4f', index=False)
 

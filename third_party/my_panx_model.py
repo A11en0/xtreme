@@ -74,7 +74,6 @@ class CustomXLMRoBertaForTokenClassification(RobertaForTokenClassification):
         return self.classifier[lang]
 
 
-
 class PseudoXLMRobertaConfig(RobertaConfig):
     pretrained_config_archive_map = XLM_ROBERTA_PRETRAINED_CONFIG_ARCHIVE_MAP
     model_type = "xlm-roberta"
@@ -95,7 +94,7 @@ class PseudoXLMRobertaForTokenClassification(BertPreTrainedModel):
         self.init_weights()
 
         # self.af = config.af
-        self.af = 0.3
+        # self.af = 0.3
 
     def create_loss_fn(self, loss_type):
         criterion = None
@@ -116,7 +115,8 @@ class PseudoXLMRobertaForTokenClassification(BertPreTrainedModel):
         head_mask=None,
         inputs_embeds=None,
         labels=None,
-        in_batch_task_id=None
+        in_batch_task_id=None,
+        train_langs_len=None
     ):
 
         outputs = self.roberta(
@@ -154,14 +154,14 @@ class PseudoXLMRobertaForTokenClassification(BertPreTrainedModel):
                 active_labels = labels.view(-1)[active_loss]
                 # logits, labels = active_logits.view(-1, self.num_labels), active_labels.view(-1)
 
-                if in_batch_task_id and in_batch_task_id > 3:   # unlabeled training data
+                if in_batch_task_id and in_batch_task_id > train_langs_len:   # unlabeled training data
                     loss = pseudo_loss_cal(active_logits)
                 else:
                     loss = loss_fct(active_logits, active_labels)
             else:
                 logits, labels = logits.view(-1, self.num_labels), labels.view(-1)
 
-                if in_batch_task_id and in_batch_task_id > 3:   # unlabeled training data
+                if in_batch_task_id and in_batch_task_id > train_langs_len:   # unlabeled training data
                     loss = pseudo_loss_cal(logits)
                 else:
                     loss = loss_fct(logits, labels)
