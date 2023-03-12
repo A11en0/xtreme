@@ -388,7 +388,7 @@ def train(args, train_datasets, unlabel_train_datasets, model, tokenizer, labels
                 break
             loss_t = {}
             grad_list = []
-
+            
             # assert None not in all_task_batch, print("current:", all_task_batch)
 
             for t, batch in enumerate(all_task_batch):
@@ -400,7 +400,8 @@ def train(args, train_datasets, unlabel_train_datasets, model, tokenizer, labels
                           "attention_mask": batch[1],
                           "labels": batch[3],
                           "in_batch_task_id": t,
-                          "train_langs_len": len(train_datasets)}
+                          "train_langs_len": len(train_datasets),
+                          "pseudo_type": args.pseudo_type}
 
                 if args.model_type != "distilbert":
                     # XLM and RoBERTa don"t use segment_ids
@@ -850,6 +851,7 @@ def main():
                         help="weight type, it can be [en, de, fr]")
     parser.add_argument("--unlabel_train_langs", default="en", type=str,
                         help="The languages in the training sets with unlabeled data.")
+    parser.add_argument("--pseudo_type", default="hard", type=str, help="hard or soft.")
     args = parser.parse_args()
 
     print("="*100)

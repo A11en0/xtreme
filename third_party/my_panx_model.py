@@ -11,7 +11,7 @@ NO_LABEL = -100
 # Version: transformer 2.3
 class CustomXLMRobertaConfig(XLMRobertaConfig):
     langs = ['en', 'de', 'fr']
-    num_labels_list = [7, 7, 7]
+    # num_labels_list = [7, 7, 7]
 
 # Version: transformer 2.3
 class CustomXLMRoBertaForTokenClassification(RobertaForTokenClassification):
@@ -21,8 +21,7 @@ class CustomXLMRoBertaForTokenClassification(RobertaForTokenClassification):
     def __init__(self, config):
         super().__init__(config)
         self.classifier = nn.ModuleDict(
-            {config.langs[i]: nn.Linear(config.hidden_size, config.num_labels) for i, num_labels in
-             enumerate(config.num_labels_list)}
+            {lang: nn.Linear(config.hidden_size, config.num_labels) for i, lang in enumerate(config.langs)}
         )  # reload，don't change the name "self.classifier"
 
         self.init_weights()
@@ -93,9 +92,6 @@ class PseudoXLMRobertaForTokenClassification(BertPreTrainedModel):
 
         self.init_weights()
 
-        # self.af = config.af
-        # self.af = 0.3
-
     def create_loss_fn(self, loss_type):
         criterion = None
         if loss_type == 'soft':
@@ -116,9 +112,9 @@ class PseudoXLMRobertaForTokenClassification(BertPreTrainedModel):
         inputs_embeds=None,
         labels=None,
         in_batch_task_id=None,
-        train_langs_len=None
+        train_langs_len=None,
+        pseudo_type=None,
     ):
-
         outputs = self.roberta(
             input_ids,
             attention_mask=attention_mask,
@@ -140,9 +136,12 @@ class PseudoXLMRobertaForTokenClassification(BertPreTrainedModel):
             # loss_fct = self.create_loss_fn(loss_type='soft')
             # Only keep active parts of the loss
 
-            def pseudo_loss_cal(outputs):
+            def pseudo_loss_cal(outputs, pseudo_type):
                 with torch.no_grad():
-                    pseudo_labeled = outputs.max(1)[1]
+                    if pseudo_type == 'soft':
+                        pseudo_labeled = outputs.softmax(dim=1)
+                    else:
+                        pseudo_labeled = outputs.max(1)[1]
 
                 unlabeled_loss = loss_fct(outputs, pseudo_labeled)
                 loss = 0.3 * unlabeled_loss
@@ -150,19 +149,21 @@ class PseudoXLMRobertaForTokenClassification(BertPreTrainedModel):
 
             if attention_mask is not None:
                 active_loss = attention_mask.view(-1) == 1
-                active_logits = logits.view(-1, self.num_labels)[active_loss]
-                active_labels = labels.view(-1)[active_loss]
+                active_logits, active_labels = logits.view(-1, self.num_labels)[active_loss], labels.view(-1)[
+                    active_loss]
                 # logits, labels = active_logits.view(-1, self.num_labels), active_labels.view(-1)
 
-                if in_batch_task_id and in_batch_task_id > train_langs_len:   # unlabeled training data
-                    loss = pseudo_loss_cal(active_logits)
+                # unlabeled training data, when current task index larger than labeled data, get into pseudo training
+                if in_batch_task_id and in_batch_task_id >= train_langs_len:
+                    loss = pseudo_loss_cal(active_logits, pseudo_type)
                 else:
                     loss = loss_fct(active_logits, active_labels)
             else:
                 logits, labels = logits.view(-1, self.num_labels), labels.view(-1)
 
-                if in_batch_task_id and in_batch_task_id > train_langs_len:   # unlabeled training data
-                    loss = pseudo_loss_cal(logits)
+                # unlabeled training data, when current task index larger than labeled data, get into pseudo training
+                if in_batch_task_id and in_batch_task_id >= train_langs_len:
+                    loss = pseudo_loss_cal(logits, pseudo_type)
                 else:
                     loss = loss_fct(logits, labels)
 
@@ -179,6 +180,7 @@ class PseudoXLMRobertaForTokenClassification(BertPreTrainedModel):
             if self.epoch > self.T2:
                 alpha = self.af
         return alpha
+
 
 if __name__ == '__main__':
     model = CustomXLMRoBertaForTokenClassification.from_pretrained('xlm-roberta-base')
