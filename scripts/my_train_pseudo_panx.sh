@@ -17,16 +17,16 @@
 REPO=$PWD
 MODEL=${1:-xlm-roberta-base}
 #MODEL=${1:-bert-base-multilingual-cased}
-GPU=${2:-0}
+GPU=${2:-1}
 DATA_DIR=${3:-"$REPO/download/"}
 OUT_DIR=${4:-"$REPO/outputs/"}
 MODEL_TYPE=${5:-xlmr-p}   # Modify this to control xlm-roberta-base or its rewrite multi-head version. [xlmr, xlmr-mh]
 WEIGHT_TYPE=${6:-uniform}  # uniform / less_forgetting
 TRAIN_LANGS=${7:-"en,de,fr"}
-UNLABEL_TRAIN_LANGS=${8:-"ru,es,ja"}
+UNLABEL_TRAIN_LANGS=${8:-"ru,es,ja,it,zh"}
 #UNLABEL_TRAIN_LANGS=${8:-"pa,pl,pt,qu,ro"}
 #PREDICT_HEAD=${9:-mean}
-PSEUDO_TYPE=${9:-"hard"}
+#PSEUDO_TYPE=${9:-"soft"}
 
 export CUDA_VISIBLE_DEVICES=$GPU
 TASK='panx'
@@ -46,14 +46,16 @@ else
   GRAD_ACC=4
 fi
 
+PSEUDO_TYPE_LIST=('soft' 'hard')
+
+for PSEUDO_TYPE in "${PSEUDO_TYPE_LIST[@]}"; do
 #DATA_DIR=$DATA_DIR/${TASK}/${TASK}_${MODEL_TYPE}_processed_maxlen${MAX_LENGTH}/
 #OUTPUT_DIR="$OUT_DIR/$TASK/${MODEL}_${MODEL_TYPE}_TL${TRAIN_LANGS}_UL${UNLABEL_TRAIN_LANGS}LR${LR}-epoch${NUM_EPOCHS}-MaxLen${MAX_LENGTH}/"
-
 DATA_DIR=$DATA_DIR/${TASK}/${TASK}_xlmr_processed_maxlen${MAX_LENGTH}/
 OUTPUT_DIR="$OUT_DIR/$TASK/${MODEL}_${MODEL_TYPE}_TL${TRAIN_LANGS}_UL${UNLABEL_TRAIN_LANGS}_${PSEUDO_TYPE}/"
 echo $OUTPUT_DIR
 mkdir -p $OUTPUT_DIR
-python $REPO/third_party/my_run_pseudo_panx.py \
+echo python $REPO/third_party/my_run_pseudo_panx.py \
   --data_dir $DATA_DIR \
   --model_type $MODEL_TYPE \
   --labels $DATA_DIR/labels.txt \
@@ -80,3 +82,4 @@ python $REPO/third_party/my_run_pseudo_panx.py \
   --weight_type $WEIGHT_TYPE \
   --unlabel_train_langs $UNLABEL_TRAIN_LANGS \
   --pseudo_type $PSEUDO_TYPE
+done
